@@ -1,38 +1,57 @@
-const mongoose = require('mongoose');
-const host = process.env.DB_HOST || '127.0.0.1'
-const dbURI = `mongo://${host}/travelr`;
-const readLine = require('readline');
+const mongoose = require("mongoose");
+const host = process.env.DB_HOST || "127.0.0.1";
+const dbURI = `mongodb://${host}/travelr`;
 
-mongoose.set('useUnifiedToplogy', true);
+// Fix typo: useUnifiedTopology
+// mongoose.set("useUnifiedTopology", true);
 
 const connect = () => {
-    setTimeout(() => mongoose.connect(dbURI,{
-        useNewUrlParser: true,
-        useCreateIndex: true
-    }), 1000);
-}
-
-mongoose.connection.on('connected', () =>{});
-
-mongoose.connection.on('error', err =>{});
-
-mongoose.connection.on('disconnected', () =>{});
-
-if (process.platform === 'win32') {
-}
-
-const gracefulShutdown = (msg, callback) => {
+  setTimeout(() => {
+    mongoose.connect(dbURI, {
+      useNewUrlParser: true,
+      useCreateIndex: true,
+    });
+  }, 1000);
 };
 
-process.once('SIGUSR2', () =>{
+mongoose.connection.on("connected", () => {
+  console.log("Mongoose connected to database");
 });
 
-process.once('SIGINT', () =>{
+mongoose.connection.on("error", (err) => {
+  console.error("Mongoose connection error:", err);
 });
 
-process.once('SIGTERM', () =>{
+mongoose.connection.on("disconnected", () => {
+  console.log("Mongoose disconnected");
+});
+
+const gracefulShutdown = (msg, callback) => {
+  mongoose.connection.close(() => {
+    console.log(`Mongoose disconnected through ${msg}`);
+    callback();
+  });
+};
+
+process.once("SIGUSR2", () => {
+  gracefulShutdown("nodemon restart", () => {
+    process.kill(process.pid, "SIGUSR2");
+  });
+});
+
+process.once("SIGINT", () => {
+  gracefulShutdown("app termination", () => {
+    process.exit(0);
+  });
+});
+
+process.once("SIGTERM", () => {
+  gracefulShutdown("Heroku app shutdown", () => {
+    process.exit(0);
+  });
 });
 
 connect();
 
-require('./travelr');
+// If "./travelr" is intended to define a Mongoose model or perform other operations, include it here.
+// require("./travelr");
